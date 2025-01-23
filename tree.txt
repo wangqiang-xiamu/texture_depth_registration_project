@@ -1,0 +1,22 @@
+texture_depth_registration_project/
+│
+├── assets/                    # 存放原始图片和深度图像
+│   ├── texture1.jpg
+│   ├── texture2.jpg
+│   ├── texture3.jpg
+│   ├── texture4.jpg
+│   ├── depth1.png
+│   ├── depth2.png
+│   ├── depth3.png
+│   ├── depth4.png
+│
+├── src/                       # 存放所有源代码
+│   ├── __init__.py
+│   ├── image_processing.py    # 处理图像拼接相关功能
+│   ├── point_cloud.py         # 处理深度图像转换为点云
+│   ├── registration.py        # 处理点云配准功能
+│   ├── main.py                # 项目主程序入口，调用各个模块
+│
+├── requirements.txt           # 依赖文件
+├── README.md                  # 项目说明文件
+└── .gitignore                 # Git 忽略文件
