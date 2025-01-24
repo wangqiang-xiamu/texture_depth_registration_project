@@ -110,7 +110,7 @@ def validate_stitching(img1, img2, output_path="stitched_texture_with_blending.j
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-
+#TEST
 # 获取图像
 img1 = cv2.imread('../assets/texture1.jpg')  # 替换为图像1的路径
 img2 = cv2.imread('../assets/texture2.jpg')  # 替换为图像2的路径
