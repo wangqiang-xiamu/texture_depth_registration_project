@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 import open3d as o3d
-from src.image_processing import stitch_images
-from src.point_cloud import depth_to_point_cloud
-from src.registration import apply_icp
+from point_cloud import depth_to_point_cloud
+from registration import apply_icp
+from stitch import dynamic_stitch
 
 
 def main():
@@ -13,13 +13,14 @@ def main():
     img3 = cv2.imread('assets/texture3.jpg')
     img4 = cv2.imread('assets/texture4.jpg')
 
-    # 图像拼接
-    stitched_img1, affine_matrix1 = stitch_images(img1, img2)
-    stitched_img2, affine_matrix2 = stitch_images(img3, img4)
-    final_img, final_affine_matrix = stitch_images(stitched_img1, stitched_img2)
+    # 图像列表
+    images = [img1, img2, img3, img4]
 
-    # 显示拼接后的图像
-    cv2.imshow("Final Stitched Image", final_img)
+    # 自动调整拼接顺序
+    final_stitched_img = dynamic_stitch(images)
+
+    # 显示最终拼接图像
+    cv2.imshow("Final Stitched Image", final_stitched_img)
     cv2.waitKey(0)
 
     # 读取深度图像并转换为点云
