@@ -5,7 +5,6 @@ from point_cloud import depth_to_point_cloud
 from registration import apply_icp
 from stitch import dynamic_stitch
 
-
 def main():
     # 读取纹理图像
     img1 = cv2.imread('assets/texture1.jpg')
@@ -21,7 +20,16 @@ def main():
 
     # 显示最终拼接图像
     cv2.imshow("Final Stitched Image", final_stitched_img)
+
+    # 保存最终拼接图像
+    output_image_path = 'final_stitched_image.jpg'
+    cv2.imwrite(output_image_path, final_stitched_img)  # 保存拼接后的图像
+
+    print(f"最终拼接图像已保存为 {output_image_path}")
+
+    # 等待用户按键关闭图像窗口
     cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     # 读取深度图像并转换为点云
     depth_image1 = cv2.imread('assets/depth1.png', cv2.IMREAD_UNCHANGED)
@@ -52,7 +60,6 @@ def main():
 
     # 可视化配准后的点云
     o3d.visualization.draw_geometries([point_cloud1])
-
 
 if __name__ == "__main__":
     main()
