@@ -1,96 +1,119 @@
 import cv2
 import numpy as np
 
-# 读取四张图片
-img1 = cv2.imread('../assets/texture1.jpg')
-img2 = cv2.imread('../assets/texture2.jpg')
-img3 = cv2.imread('../assets/texture3.jpg')
-img4 = cv2.imread('../assets/texture4.jpg')
 
-# 假设重叠区域的宽度
-overlap_width = 100  # 你可以根据实际情况调整这个值
-
-# 确保图像大小一致
-img_height = max(img1.shape[0], img2.shape[0], img3.shape[0], img4.shape[0])
-img_width = max(img1.shape[1], img2.shape[1], img3.shape[1], img4.shape[1])
-
-img1 = cv2.resize(img1, (img_width, img_height))
-img2 = cv2.resize(img2, (img_width, img_height))
-img3 = cv2.resize(img3, (img_width, img_height))
-img4 = cv2.resize(img4, (img_width, img_height))
-
-# 定义加权平均拼接函数
-def blend_images(img1, img2, overlap_width, direction='horizontal'):
+def show_matches(image1, image2):
     """
-    :param img1: 第一张图片
-    :param img2: 第二张图片
-    :param overlap_width: 重叠区域的宽度
-    :param direction: 拼接方向，'horizontal' 表示左右拼接，'vertical' 表示上下拼接
-    :return: 拼接后的图像
+    可视化两张图像之间的特征点匹配，并打印匹配点数量。
+
+    参数:
+        image1: 第一张图像。
+        image2: 第二张图像。
     """
-    if direction == 'horizontal':
-        # 水平拼接，重叠区域加权
-        alpha = np.linspace(1, 0, overlap_width)  # 权重从1到0
-        img1_overlap = img1[:, -overlap_width:]
-        img2_overlap = img2[:, :overlap_width]
+    orb = cv2.ORB_create()
+    kp1, des1 = orb.detectAndCompute(image1, None)
+    kp2, des2 = orb.detectAndCompute(image2, None)
 
-        # 使用加权平均法合并重叠区域
-        blended_overlap = np.zeros_like(img1_overlap, dtype=np.float32)
-        for i in range(overlap_width):
-            blended_overlap[:, i] = alpha[i] * img1_overlap[:, i] + (1 - alpha[i]) * img2_overlap[:, i]
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(des1, des2)
 
-        # 可以对重叠区域应用高斯模糊来平滑过渡
-        blended_overlap = cv2.GaussianBlur(blended_overlap.astype(np.uint8), (15, 15), 0)
+    # 打印匹配的特征点数量
+    print(f"匹配点数量: {len(matches)}")
 
-        # 去掉不重叠部分，进行拼接
-        img1_non_overlap = img1[:, :-overlap_width]
-        img2_non_overlap = img2[:, overlap_width:]
+    img_matches = cv2.drawMatches(image1, kp1, image2, kp2, matches[:20], None,
+                                  flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    cv2.imshow('Matches', img_matches)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-        # 拼接并返回
-        result = np.hstack((img1_non_overlap, blended_overlap, img2_non_overlap))
-        return result.astype(np.uint8)
 
-    elif direction == 'vertical':
-        # 垂直拼接，重叠区域加权
-        alpha = np.linspace(1, 0, overlap_width)  # 权重从1到0
-        img1_overlap = img1[-overlap_width:, :]
-        img2_overlap = img2[:overlap_width, :]
+def stitch_images(image1, image2):
+    """
+    拼接两张图像并返回拼接后的图像。
 
-        # 使用加权平均法合并重叠区域
-        blended_overlap = np.zeros_like(img1_overlap, dtype=np.float32)
-        for i in range(overlap_width):
-            blended_overlap[i, :] = alpha[i] * img1_overlap[i, :] + (1 - alpha[i]) * img2_overlap[i, :]
+    参数:
+        image1: 第一张图像。
+        image2: 第二张图像。
 
-        # 可以对重叠区域应用高斯模糊来平滑过渡
-        blended_overlap = cv2.GaussianBlur(blended_overlap.astype(np.uint8), (15, 15), 0)
+    返回:
+        stitched_image: 拼接后的图像。
+    """
+    print(f"拼接图像 {image1.shape} 和 {image2.shape}...")
+    stitcher = cv2.Stitcher_create()
+    status, stitched_image = stitcher.stitch([image1, image2])
 
-        # 去掉不重叠部分，进行拼接
-        img1_non_overlap = img1[:-overlap_width, :]
-        img2_non_overlap = img2[overlap_width:, :]
+    if status != cv2.Stitcher_OK:
+        print(f"图像拼接失败！状态码: {status}")  # 打印失败的状态码
+        return None
+    else:
+        print("拼接成功！")
+        return stitched_image
 
-        # 拼接并返回
-        result = np.vstack((img1_non_overlap, blended_overlap, img2_non_overlap))
-        return result.astype(np.uint8)
 
-# 步骤1：左右拼接 img1 和 img2，确保平滑过渡
-result1 = blend_images(img1, img2, overlap_width, direction='horizontal')
+def load_image(image_path):
+    """
+    加载图像并检查是否成功。
 
-# 保存步骤1的结果
-cv2.imwrite('save1.jpg', result1)
+    参数:
+        image_path: 图像文件路径。
 
-# 步骤2：左右拼接 img4 和 img3，确保平滑过渡
-result2 = blend_images(img4, img3, overlap_width, direction='horizontal')
+    返回:
+        image: 加载的图像。
+    """
+    print(f"image1 path: {image_path}")
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"图像加载失败！请检查路径 {image_path} 是否正确。")
+    else:
+        print(f"图像加载成功！尺寸: {image.shape}")
+    return image
 
-# 保存步骤2的结果
-cv2.imwrite('save2.jpg', result2)
 
-# 步骤3：上下拼接 result1 和 result2，确保平滑过渡
-final_result = blend_images(result1, result2, overlap_width, direction='vertical')
+def process_multiple_images(images):
+    """
+    逐步拼接多个图像。
 
-# 显示最终拼接结果
-cv2.imshow("Blended Image", final_result)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    参数:
+        images: 包含多张图像的列表。
 
-# 保存最终结果
-cv2.imwrite('final_blended_image.jpg', final_result)
+    返回:
+        stitched_image: 拼接后的图像。
+    """
+    if len(images) < 2:
+        print("需要至少两张图像进行拼接。")
+        return None
+
+    stitched_image = images[0]  # 从第一张图像开始
+    for i in range(1, len(images)):
+        stitched_image = stitch_images(stitched_image, images[i])
+        if stitched_image is None:
+            print("拼接失败，停止处理！")
+            break
+    return stitched_image
+
+
+# 示例使用
+if __name__ == "__main__":
+    # 假设你有四张纹理图像路径
+    image_paths = [
+        '../assets/fusion1.jpg',
+        '../assets/fusion2.jpg',
+        '../assets/fusion3.jpg',
+        '../assets/fusion4.jpg'
+    ]
+
+    images = [load_image(image_path) for image_path in image_paths]
+
+    # 过滤掉加载失败的图像
+    images = [image for image in images if image is not None]
+
+    if len(images) >= 2:
+        # 拼接多张图像
+        stitched_image = process_multiple_images(images)
+        if stitched_image is not None:
+            cv2.imwrite('stitched_image.jpg', stitched_image)
+            print("拼接图像已保存！")
+        else:
+            print("拼接失败！")
+    else:
+        print("图像不足，无法拼接！")
